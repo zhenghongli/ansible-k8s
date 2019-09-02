@@ -1,0 +1,149 @@
+---
+- name: update all packages, excluding kernel
+  yum:
+    name: '*'
+    state: latest
+
+- name: docker groupadd
+  group:
+    name: docker
+    state: present
+
+- name: passwd docker user
+  command: gpasswd -a {{hostvars['k8s'].ansible_user}} docker
+
+#- name: remove docker repo
+#  yum_repository:
+ #   name: docker
+ #   state: absent
+
+- name: add docker repo
+  shell: yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+
+- name: update docker repo
+  yum:
+    name: '*'
+    state: latest
+
+#- name: remove docker
+#  yum: 
+#    name: docker*
+#    state: absent
+
+- name: call flush handlers
+  meta: flush_handlers
+
+- name: install docker
+  yum: 
+    name: docker-ce-18.06.1.ce
+    state: present
+  notify: docker restart
+
+- name: mkdir docker directory
+  file: 
+    path: /etc/docker
+    state: directory
+    mode: u=rwX,g=rX,o=rX
+  become: yes
+
+- name: mkdir docker service directory
+  file: 
+    path: /etc/systemd/system/docker.service.d
+    state: directory
+    mode: '0755'
+    recurse: yes
+
+- name: create kubernetes repo
+  shell:
+    cmd: |
+      cat  > /etc/yum.repos.d/kubernetes.repo <<EOF
+      [kubernetes]
+      name=Kubernetes
+      baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+      enabled=1
+      gpgcheck=1
+      repo_gpgcheck=1
+      gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+      exclude=kube*
+      EOF
+
+- name: set selinux config
+  selinux:
+    state: permissive
+
+- name: set selinux permissive
+  command: setenforce 0
+
+- name: set sed
+  lineinfile:
+    dest: /etc/selinux/config
+    regexp: ^SELINUX=enforcing$
+    line: SELINUX=permissive  
+#command: sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
+#  become: yes
+- name: install epel
+  yum:
+    name: epel-release
+
+- name: install pip
+  yum:
+    name: python-pip
+
+- name: install python module pexpect
+  command: pip install pexpect
+
+- name: install required packages
+  yum: 
+    name:
+      - yum-utils
+      - device-mapper-persistent-data
+      - lvm2
+    state: present
+
+- name: add docker group
+  group: 
+    name: docker
+    state: present
+  become: yes
+
+- name: docker group mod
+  user:
+    name: centos
+    shell: /bin/bash
+    groups: docker
+    append: yes
+  become: yes
+
+#- name: delete kubelet kubeadm kubectl
+#  yum:
+#    name:
+#    - kubelet
+#    - kubeadm
+#    - kubectl
+#    state: absent
+
+- name: install kubelet kubeadm kubectl
+  yum: 
+    name:
+    - kubelet
+    - kubeadm
+    - kubectl
+    disable_excludes: kubernetes
+  notify: 
+    - daemon-reload
+    - kubelet restart
+
+- name: install k8s bash completion
+  yum:
+    name: bash-completion
+
+- name: source k8s bash completion
+  shell: source /usr/share/bash-completion/bash_completion
+  become: no
+
+- name: echo k8s bash completion to bashrc
+  shell: echo 'source <(kubectl completion bash)' >> /home/{{hostvars['k8s'].ansible_user}}/.bashrc
+
+- name: install git
+  yum:
+    name: git

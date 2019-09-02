@@ -1,0 +1,6 @@
+---
+# tasks file for calico
+- name: install calico
+  shell: kubectl apply -f https://docs.projectcalico.org/"{{calico_version}}"/manifests/calico.yaml
+  environment: 
+    KUBECONFIG: /home/{{hostvars['k8s'].ansible_user}}/.kube/config

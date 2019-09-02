@@ -1,0 +1,5 @@
+[master]
+k8s ansible_host=172.29.244.195 ansible_port=22 ansible_user=centos
+[worker]
+k8s-node1 ansible_host=172.29.244.119 ansible_port=22 ansible_user=centos
+k8s-node2 ansible_host=172.29.244.106 ansible_port=22 ansible_user=centos

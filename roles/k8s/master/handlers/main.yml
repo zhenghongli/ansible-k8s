@@ -1,0 +1,8 @@
+---
+# handlers file for master
+- name: enable service kubelet
+  service:
+    name: kubelet
+    enabled: yes
+    state: started
+

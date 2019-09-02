@@ -1,0 +1,11 @@
+---
+# tasks file for master
+- name: kubeadm init
+  shell: kubeadm init --pod-network-cidr=10.244.0.0/16 --ignore-preflight-errors=all
+  #shell: kubeadm init  --pod-network-cidr="{{hostvars['k8s'].ansible_host}}"/22
+  register: kube_init_info
+  notify: enable service kubelet
+  become: yes
+
+- name: save token to local
+  local_action: copy content="{{kube_init_info.stdout}}" dest=/home/centos/kubernetes-ansible/token.log

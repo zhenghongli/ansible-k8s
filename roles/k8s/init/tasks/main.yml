@@ -1,0 +1,8 @@
+---
+# tasks file for init
+
+- name: copy ansible.cfg
+  copy:
+    src: ansible.cfg
+    dest: $HOME/
+

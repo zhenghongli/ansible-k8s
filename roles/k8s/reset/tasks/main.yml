@@ -1,0 +1,8 @@
+
+- name: reset kubernetes
+  expect:
+    command: kubeadm reset
+    responses:
+        'Are you sure you want to proceed': 'y'
+  become: yes
+

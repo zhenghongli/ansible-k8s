@@ -1,0 +1,10 @@
+---
+# handlers file for calico
+- name: kubectl restart
+  service:
+    name: kubectl
+    enabled: yes
+    state: restart
+  become: yes
+  changed_when: true
+
