@@ -1,0 +1,67 @@
+---
+
+- name: uninstall swap by command
+  shell: swapoff -a && sudo sysctl -w vm.swappiness=0
+  become: yes
+
+- name: uninstall swap by file
+  shell: sed '/swap/d' -i /etc/fstab
+  become: yes
+
+- name: create kubernetes repo
+  shell:
+    cmd: curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
+  become: yes
+
+- name: add repo signed
+  shell:
+    cmd: echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+  become: yes
+
+- name: Update APT Cache
+  apt:
+    update_cache: yes
+    force_apt_get: yes
+  become: yes
+
+- name: Remove apt lock file
+  file:
+    state: absent
+    path: "/var/lib/dpkg/lock"
+  become: yes
+
+- name: Unhold kubeadm kubelet kubectl
+  dpkg_selections:
+    name: "{{ item }}"
+    selection: install
+  with_items:
+    - kubelet
+    - kubeadm
+    - kubectl
+  become: yes
+
+- name: install kubelet kubeadm kubectl
+  apt: 
+    name: "{{ item }}"
+    state: present
+    allow_downgrade: yes
+  notify: 
+    - kubelet restart
+  with_items:
+    - kubelet={{ kube_version }}-00
+    - kubeadm={{ kube_version }}-00
+    - kubectl={{ kube_version }}-00
+  become: yes
+
+- name: Hold kubeadm kubelet kubectl
+  dpkg_selections:
+    name: "{{ item }}"
+    selection: hold
+  with_items:
+    - kubelet
+    - kubeadm
+    - kubectl
+  become: yes
+
+- name: echo k8s bash completion to bashrc
+  shell: echo 'source <(kubectl completion bash)' >> /home/{{ ansible_env.USER }}/.bashrc

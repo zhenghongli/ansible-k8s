@@ -1,0 +1,21 @@
+kube_version: 1.22.10
+cni_version: 3.22
+cni: calico
+docker_version: 19.03.15
+flannel_pod_network_cidr: 10.244.0.0/16
+calico_pod_network_cidr: 192.168.0.0/16
+vip: 172.31.235.140
+master_names:
+  - k8s-origin-k8s-env-master1
+  - k8s-origin-k8s-env-master2
+  - k8s-origin-k8s-env-master3
+all_node_name:
+  - k8s-origin-k8s-env-master1
+  - k8s-origin-k8s-env-master2
+  - k8s-origin-k8s-env-master3
+  - tsti-virtual-machine
+all_node_k8s_label:
+  - q1
+  - q2
+  - q3
+  - n1

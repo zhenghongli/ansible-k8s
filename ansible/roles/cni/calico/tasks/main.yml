@@ -1,0 +1,10 @@
+---
+- name: Install calico tigera-operator
+  command: kubectl create -f https://projectcalico.docs.tigera.io/archive/v{{ cni_version }}/manifests/tigera-operator.yaml
+  environment: 
+    KUBECONFIG: /home/{{ ansible_env.USER }}/.kube/config
+
+- name: Install calico custom-resources
+  command: kubectl create -f https://projectcalico.docs.tigera.io/archive/v{{ cni_version }}/manifests/custom-resources.yaml
+  environment: 
+    KUBECONFIG: /home/{{ ansible_env.USER }}/.kube/config

@@ -1,0 +1,9 @@
+---
+# tasks file for worker
+- name: substring worker token to var
+  local_action: "shell tail -n 2 kube-join-cmd.txt"
+  register: add_node_command
+
+- name: add k8s node
+  shell: "{{ add_node_command.stdout }}  --ignore-preflight-errors=all"
+  become: yes
