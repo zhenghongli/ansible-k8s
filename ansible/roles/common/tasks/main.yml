@@ -1,0 +1,22 @@
+---
+- name: Update APT Cache
+  apt:
+    update_cache: yes
+  become: yes
+
+- name: Remove apt lock file
+  file:
+    state: absent
+    path: "/var/lib/dpkg/lock"
+  become: yes
+
+- name: install required packages
+  apt:
+    name: "{{ item }}"
+  with_items:
+  - git
+  - vim
+  - curl
+  - net-tools
+  - tcpdump
+  become: yes

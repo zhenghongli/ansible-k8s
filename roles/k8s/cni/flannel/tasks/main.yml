@@ -1,8 +1,0 @@
----
-# tasks file for flannel
-- name: install flannel
-  command: kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/62e44c867a2846fefb68bd5f178daf4da3095ccb/Documentation/kube-flannel.yml
-  environment: 
-    KUBECONFIG: /home/{{hostvars['k8s'].ansible_user}}/.kube/config
-
-

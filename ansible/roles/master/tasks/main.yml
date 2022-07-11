@@ -1,0 +1,172 @@
+---
+- name: Create k8s manifests director
+  file:
+    path: /etc/kubernetes/manifests
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  become: yes
+
+- name: Create kubernetes haproxy yaml
+  shell:
+    cmd: |
+      cat <<EOF > /etc/haproxy/haproxy.cfg
+      global
+        log 127.0.0.1 local0
+        log 127.0.0.1 local1 notice
+        tune.ssl.default-dh-param 2048
+
+      defaults
+        log global
+        mode http
+        option dontlognull
+        timeout connect 5000ms
+        timeout client 600000ms
+        timeout server 600000ms
+
+      listen stats
+          bind :9090
+          mode http
+          balance
+          stats uri /haproxy_stats
+          stats auth admin:admin123
+          stats admin if TRUE
+
+      frontend kube-apiserver-https
+        mode tcp
+        bind :8443
+        default_backend kube-apiserver-backend
+
+      backend kube-apiserver-backend
+          mode tcp
+          balance roundrobin
+          stick-table type ip size 200k expire 30m
+          stick on src
+          server {{ master_names[0] }} {{ hostvars['master01'].ansible_host }}:6443 check
+          server {{ master_names[1] }} {{ hostvars['master02'].ansible_host }}:6443 check
+          server {{ master_names[2] }} {{ hostvars['master03'].ansible_host }}:6443 check
+
+      EOF
+  become: yes
+
+- name: Create kubernetes haproxy yaml
+  shell:
+    cmd: |
+      cat > /etc/kubernetes/manifests/haproxy.yaml <<EOF
+      kind: Pod
+      apiVersion: v1
+      metadata:
+        annotations:
+          scheduler.alpha.kubernetes.io/critical-pod: ""
+        labels:
+          component: haproxy
+          tier: control-plane
+        name: kube-haproxy
+        namespace: kube-system
+      spec:
+        hostNetwork: true
+        priorityClassName: system-cluster-critical
+        containers:
+        - name: kube-haproxy
+          image: docker.io/haproxy:1.7-alpine
+          resources:
+            requests:
+              cpu: 100m
+          volumeMounts:
+          - name: haproxy-cfg
+            readOnly: true
+            mountPath: /usr/local/etc/haproxy/haproxy.cfg
+        volumes:
+        - name: haproxy-cfg
+          hostPath:
+            path: /etc/haproxy/haproxy.cfg
+            type: FileOrCreate
+      EOF
+  become: yes
+
+
+- name: create kubernetes keepalived
+  shell:
+    cmd: |
+      cat > /etc/kubernetes/manifests/keepalived.yaml <<EOF
+      kind: Pod
+      apiVersion: v1
+      metadata:
+        annotations:
+          scheduler.alpha.kubernetes.io/critical-pod: ""
+        labels:
+          component: keepalived
+          tier: control-plane
+        name: kube-keepalived
+        namespace: kube-system
+      spec:
+        hostNetwork: true
+        priorityClassName: system-cluster-critical
+        containers:
+        - name: kube-keepalived
+          image: docker.io/osixia/keepalived:2.0.17
+          env:
+          - name: KEEPALIVED_VIRTUAL_IPS
+            value: {{ vip }}
+          - name: KEEPALIVED_INTERFACE
+            value: ens160
+          - name: KEEPALIVED_UNICAST_PEERS
+            value: "#PYTHON2BASH:['{{ hostvars['master01'].ansible_host }}', '{{ hostvars['master02'].ansible_host }}', '{{ hostvars['master03'].ansible_host }}']"
+          - name: KEEPALIVED_PASSWORD
+            value: d0cker
+          - name: KEEPALIVED_PRIORITY
+            value: "100"
+          - name: KEEPALIVED_ROUTER_ID
+            value: "51"
+          resources:
+            requests:
+              cpu: 100m
+          securityContext:
+            privileged: true
+            capabilities:
+              add:
+              - NET_ADMIN
+      EOF
+  become: yes
+
+- name: create kubeadm-config.yaml for calico
+  shell:
+    cmd: |
+      cat  > /etc/kubernetes/kubeadm-config.yaml <<EOF
+      apiVersion: kubeadm.k8s.io/v1beta3
+      kind: ClusterConfiguration
+      kubernetesVersion: v{{ kube_version }}
+      controlPlaneEndpoint: "{{ vip }}:8443"
+      networking:
+        podSubnet: "{{ calico_pod_network_cidr }}"
+      EOF
+  become: yes
+  when: cni == "calico"
+
+- name: create kubeadm-config.yaml for flannel
+  shell:
+    cmd: |
+      cat  > /etc/kubernetes/kubeadm-config.yaml <<EOF
+      apiVersion: kubeadm.k8s.io/v1beta3
+      kind: ClusterConfiguration
+      kubernetesVersion: v{{ kube_version }}
+      controlPlaneEndpoint: "{{ vip }}:8443"
+      networking:
+        podSubnet: "{{ flannel_pod_network_cidr }}"
+      EOF
+  become: yes
+  when: cni == "flannel"
+
+# tasks file for master
+- name: kubeadm init 
+  command: kubeadm init --config=/etc/kubernetes/kubeadm-config.yaml --upload-certs
+  register: kube_init_info
+  notify: enable service kubelet
+  become: yes
+
+- name: save token to local
+  local_action: copy content={{ kube_init_info.stdout }} dest=/ansible-playbook/token.log
+
+- name: abstract join token
+  local_action: shell bash ./read_token_script.sh

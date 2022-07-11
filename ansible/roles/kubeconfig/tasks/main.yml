@@ -1,0 +1,19 @@
+---
+# tasks file for kubeconfig
+- name: create kube directory
+  file:
+    path: $HOME/.kube
+    mode: u=rwX,g=rX,o=rX
+    state: directory
+    recurse: yes
+    force: yes
+  become: no
+
+- name: copy admin.conf file
+  copy:
+    src: /etc/kubernetes/admin.conf
+    dest: /home/{{ansible_env.USER}}/.kube/config
+    remote_src: yes
+    owner: "{{ansible_env.USER}}"
+    group: "{{ansible_env.USER}}"
+  become: yes

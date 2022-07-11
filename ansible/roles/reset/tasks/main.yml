@@ -1,0 +1,11 @@
+---
+- name: reset kubernetes
+  expect:
+    command: kubeadm reset
+    responses:
+        'Are you sure you want to proceed': 'y'
+  become: yes
+
+- name: remove kubernetes files
+  command: rm -rf /etc/cni /etc/kubernetes/ /var/lib/dockershim /var/lib/etcd /var/lib/kubelet /var/run/kubernetes ~/.kube/*
+  become: yes

@@ -1,0 +1,27 @@
+---
+- hosts: no-master
+  roles:
+  - { role: ubuntu/uninstall-docker}
+  - { role: ubuntu/docker}
+- hosts: no-master
+  roles:
+  - { role: ubuntu/common}
+- hosts: all
+  roles:
+  - { role: ubuntu/reset} 
+  - { role: ubuntu/install-kube}
+- hosts: master
+  roles:
+  - { role: ubuntu/master}
+- hosts: ha-master
+  roles:
+  - { role: ubuntu/ha-master}
+- hosts: all-master
+  roles:
+  - { role: ubuntu/kubeconfig}
+- hosts: worker
+  roles:
+  - { role: ubuntu/worker}
+- hosts: master
+  roles:
+  - { role: ubuntu/cni/calico}
