@@ -1,7 +1,7 @@
 kube_version: 1.22.10
 cni_version: 3.22
 cni: calico
-docker_version: 19.03.15
+docker_version: 20.10.17
 flannel_pod_network_cidr: 10.244.0.0/16
 calico_pod_network_cidr: 192.168.0.0/16
 vip: 172.31.235.140
