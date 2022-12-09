@@ -7,7 +7,7 @@
 # Run you docker env and mount ansible script in docker.
 ```
 cd ansible
-docker run -tid --name ansible -v $(pwd):/ansible-playbook ansible-deploy-node:0.1 /bin/bash
+docker run -tid --name ansible -v $(pwd):/ansible ansible-deploy-node:0.1 /bin/bash
 ```
 # get into contaienr.
 `docker exec -ti ansible /bin/bash`
