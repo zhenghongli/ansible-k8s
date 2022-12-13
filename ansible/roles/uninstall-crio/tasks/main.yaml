@@ -1,0 +1,7 @@
+- name: uninstall old crio versions
+  apt: 
+    name: "{{ item }}"
+    state: absent
+  with_items:
+    - crio
+  become: yes

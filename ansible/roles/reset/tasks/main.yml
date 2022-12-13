@@ -4,8 +4,20 @@
     command: kubeadm reset
     responses:
         'Are you sure you want to proceed': 'y'
+    timeout: 300
+  become: yes
+  
+- name: remove kubernetes files
+  command: rm -rf /etc/cni /etc/kubernetes/ /var/lib/dockershim /var/lib/etcd /var/lib/kubelet /var/run/kubernetes ~/.kube/* /etc/cni/net.d/*
   become: yes
 
-- name: remove kubernetes files
-  command: rm -rf /etc/cni /etc/kubernetes/ /var/lib/dockershim /var/lib/etcd /var/lib/kubelet /var/run/kubernetes ~/.kube/*
+- name: clean iptables rule
+  shell:
+    cmd: |
+      iptables -F
+      iptables -X
+      iptables -Z
+      iptables -t nat -F
+      iptables -t nat -X
+      iptables -t nat -Z
   become: yes

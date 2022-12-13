@@ -110,7 +110,7 @@
           - name: KEEPALIVED_VIRTUAL_IPS
             value: {{ vip }}
           - name: KEEPALIVED_INTERFACE
-            value: ens160
+            value: ens192
           - name: KEEPALIVED_UNICAST_PEERS
             value: "#PYTHON2BASH:['{{ hostvars['master01'].ansible_host }}', '{{ hostvars['master02'].ansible_host }}', '{{ hostvars['master03'].ansible_host }}']"
           - name: KEEPALIVED_PASSWORD

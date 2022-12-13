@@ -1,0 +1,112 @@
+- name: download CRI-O repo
+  shell: 
+    cmd:
+      curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/{{ crio_repo_os }}/devel:kubic:libcontainers:stable.repo &&
+      curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:{{ crio_repo_version }}.repo https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:{{ crio_repo_version }}/{{ crio_repo_os }}/devel:kubic:libcontainers:stable:cri-o:{{ crio_repo_version }}.repo
+  become: yes
+
+- name: update CRI-O repo
+  yum: 
+    name: '*'
+    state: latest
+    nobest: true
+  become: yes
+
+- name: install CRI-O
+  yum: 
+    name: cri-o
+    state: present
+  become: yes
+
+- name: CRI-O version lock
+  community.general.yum_versionlock:
+    state: present
+    name: cri-o
+  become: yes
+
+
+- name: download crictl.tar
+  shell: 
+    cmd:
+      curl -L https://github.com/kubernetes-sigs/cri-tools/releases/download/$VERSION/crictl-${crictl_version}-linux-amd64.tar.gz --output crictl-${crictl_version}-linux-amd64.tar.gz
+  become: yes
+
+- name: uncompress crictl.tar
+  shell: "sudo tar zxvf crictl-{{ crictl_version }}-linux-amd64.tar.gz -C /usr/bin"
+  become: yes
+
+
+- name: set crio capabilities
+  shell:
+    cmd: |
+      sudo ex -s /etc/crio/crio.conf -c '/[crio.runtime]/r /dev/stdin' -c 'wq' <<EOF
+      default_capabilities = [
+              "MKNOD",
+              "CHOWN",
+              "DAC_OVERRIDE",
+              "FSETID",
+              "FOWNER",
+              "NET_RAW",
+              "SETGID",
+              "SETUID",
+              "SETPCAP",
+              "NET_BIND_SERVICE",
+              "SYS_CHROOT",
+              "KILL",  
+      ]
+      EOF
+  become: yes
+  
+- name: rm containers policy.json
+  shell:
+    cmd: rm -rf /etc/containers/policy.json
+  become: yes
+
+- name: create containers policy.json
+  shell:
+    cmd: |
+      cat << EOF | sudo tee /etc/containers/policy.json
+      {
+          "default": [
+              {
+                  "type": "insecureAcceptAnything"
+              }
+          ],
+          "transports": {
+              "docker": {
+                  "registry.access.redhat.com": [
+                      {
+                          "type": "signedBy",
+                          "keyType": "GPGKeys",
+                          "keyPath": "/etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release"
+                      }
+                  ],
+                  "registry.redhat.io": [
+                      {
+                          "type": "signedBy",
+                          "keyType": "GPGKeys",
+                          "keyPath": "/etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release"
+                      }
+                  ]
+              },
+              "docker-daemon": {
+                  "": [
+                      {
+                          "type": "insecureAcceptAnything"
+                      }
+                  ]
+              }
+          }
+      }
+      EOF
+  become: yes
+
+- name: reload crio service
+  service:
+    name: crio
+    enabled: yes
+    state: restarted
+  become: yes
+
+
+

@@ -1,19 +1,8 @@
 ---
 # handlers file for common
-
-- name: daemon-reload
-  systemd:
-    daemon_reload: yes
-
-- name: kubelet restart
+- name: restart crio service
   service:
-    name: kubelet
+    name: cri-o
     enabled: yes
-    state: started
-
-- name: docker restart
-  service:
-    name: docker
-    enabled: yes
-    state: started
+    state: restarted
   become: yes

@@ -1,12 +1,14 @@
 [master]
-master01 ansible_host=172.31.235.136 ansible_port=22 ansible_user=tsti ansible_password=70771557 
+master01 ansible_host=172.31.235.244 ansible_port=22 ansible_user=tsti ansible_password=70771557 
 
 [ha-master]
-master02 ansible_host=172.31.235.137 ansible_port=22 ansible_user=tsti ansible_password=70771557
-master03 ansible_host=172.31.235.138 ansible_port=22 ansible_user=tsti ansible_password=70771557
+master02 ansible_host=172.31.235.245 ansible_port=22 ansible_user=tsti ansible_password=70771557
+master03 ansible_host=172.31.235.246 ansible_port=22 ansible_user=tsti ansible_password=70771557
 
 [worker]
-worker01 ansible_host=172.31.235.139 ansible_port=22 ansible_user=tsti ansible_password=70771557
+worker01 ansible_host=172.31.235.247 ansible_port=22 ansible_user=tsti ansible_password=70771557
+worker02 ansible_host=172.31.235.248 ansible_port=22 ansible_user=tsti ansible_password=70771557
+worker03 ansible_host=172.31.235.249 ansible_port=22 ansible_user=tsti ansible_password=70771557
 
 [no-master:children]
 worker

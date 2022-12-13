@@ -1,22 +1,203 @@
 ---
-- name: Update APT Cache
-  apt:
-    update_cache: yes
+- name: dnf update
+  ansible.builtin.dnf:
+    name: '*'
+    state: latest
+    nobest: true
   become: yes
 
-- name: Remove apt lock file
-  file:
-    state: absent
-    path: "/var/lib/dpkg/lock"
+# - name: install development tools
+#   ansible.builtin.yum:
+#     name: "@development tools" 
+#     state: present
+#   become: yes
+
+- name: install versionlock
+  ansible.builtin.yum:
+    name: yum-plugin-versionlock
+    state: present
   become: yes
 
-- name: install required packages
-  apt:
-    name: "{{ item }}"
-  with_items:
-  - git
-  - vim
-  - curl
-  - net-tools
-  - tcpdump
+- name: set iptables modules
+  shell:
+    cmd: |
+      cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
+      overlay
+      br_netfilter
+      EOF
+  become: yes
+
+- name: add overlay module
+  community.general.modprobe:
+    name: overlay
+    state: present
+  become: yes 
+
+- name: add br_netfilter module
+  community.general.modprobe:
+    name: br_netfilter
+    state: present
+  become: yes
+
+- name: set iptables bridge
+  shell:
+    cmd: |
+      cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
+      net.bridge.bridge-nf-call-iptables  = 1
+      net.ipv4.ip_forward                 = 1
+      net.bridge.bridge-nf-call-ip6tables = 1
+      EOF
+  become: yes
+  register: result
+
+- name: sysctl config reload
+  command: sysctl --system
+  become: yes
+  when: result.changed
+
+- name: permit traffic in public zone for kube-apiserver service
+  ansible.posix.firewalld:
+    service: kube-apiserver
+    zone: public
+    permanent: yes
+    state: enabled
+    immediate: yes
+  become: yes
+
+- name: permit traffic in public zone for etcd-client service
+  ansible.posix.firewalld:
+    service: etcd-client
+    zone: public
+    permanent: yes
+    state: enabled
+  become: yes
+
+- name: permit traffic in public zone for etcd-server service
+  ansible.posix.firewalld:
+    service: etcd-server
+    zone: public
+    permanent: yes
+    state: enabled
+  become: yes
+
+- name: permit traffic in public zone for kubelet-API
+  ansible.posix.firewalld:
+    port: 10250/tcp
+    permanent: yes
+    state: enabled
+  become: yes
+
+- name: permit traffic in public zone for kube-scheduler
+  ansible.posix.firewalld:
+    port: 10251/tcp
+    permanent: yes
+    state: enabled
+  become: yes
+
+- name: permit traffic in public zone for kube-contorller-manager
+  ansible.posix.firewalld:
+    port: 10252/tcp
+    permanent: yes
+    state: enabled
+  become: yes
+
+- name: permit traffic in public zone for kube etcd
+  ansible.posix.firewalld:
+    port: 2379/tcp
+    permanent: yes
+    state: enabled
+  become: yes
+
+- name: permit traffic in public zone for nodeport service
+  ansible.posix.firewalld:
+    port: 30000-32767/tcp
+    permanent: yes
+    state: enabled
+  become: yes
+ 
+- name: permit traffic in public zone for calico BGP
+  ansible.posix.firewalld:
+    port: 179/tcp
+    permanent: yes
+    state: enabled
+  become: yes
+ 
+- name: permit traffic in public zone for calico VXLAN
+  ansible.posix.firewalld:
+    port: 4789/udp
+    permanent: yes
+    state: enabled
+  become: yes
+ 
+- name: permit traffic in public zone for calico Typha
+  ansible.posix.firewalld:
+    port: 5473/tcp
+    permanent: yes
+    state: enabled
+  become: yes
+ 
+- name: permit traffic in public zone for calico IPv4 wireguard enabled
+  ansible.posix.firewalld:
+    port: 51820/udp
+    permanent: yes
+    state: enabled
+  become: yes
+ 
+- name: permit traffic in public zone for calico IPv6 wireguard enabled
+  ansible.posix.firewalld:
+    port: 51821/udp
+    permanent: yes
+    state: enabled
+  become: yes
+
+- name: permit traffic in public zone for flannel networking (VXLAN)
+  ansible.posix.firewalld:
+    port: 4789/udp
+    permanent: yes
+    state: enabled
+  become: yes
+
+- name: permit traffic in public zone for keepalive load balance
+  ansible.posix.firewalld:
+    port: 8443/tcp
+    permanent: yes
+    state: enabled
+  become: yes
+
+- name: set swapoff
+  command: swapoff -a
+  become: yes
+
+- name: comment out swap in fstab file
+  command: sed -i 's/\/dev\/mapper/#\/dev\/mapper/i' /etc/fstab
+  become: yes
+
+- name: install libvirtd
+  yum: 
+    name: libvirt-daemon
+    state: present
+  become: yes
+
+- name: delete virsh network
+  shell:
+    cmd: |
+      virsh net-destroy default
+      virsh net-autostart default --disable
+      chkconfig libvirtd off
+  become: yes
+
+- name: stop virsh
+  service:
+    name: libvirtd
+    enabled: no
+    state: stopped
+  become: yes
+
+- name: reboot
+  reboot:
+    msg: "Reboot initiated by Ansible for libvirtd network cards reset"
+    connect_timeout: 5
+    reboot_timeout: 300
+    pre_reboot_delay: 0
+    post_reboot_delay: 30
   become: yes

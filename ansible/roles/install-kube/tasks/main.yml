@@ -1,39 +1,29 @@
 ---
-
-- name: uninstall swap by command
-  shell: swapoff -a && sudo sysctl -w vm.swappiness=0
-  become: yes
-
-- name: uninstall swap by file
-  shell: sed '/swap/d' -i /etc/fstab
-  become: yes
-
 - name: create kubernetes repo
   shell:
-    cmd: curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
+    cmd: |
+      cat <<EOF | sudo tee /etc/yum.repos.d/kubernetes.repo
+      [kubernetes]
+      name=Kubernetes
+      baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-\$basearch
+      enabled=1
+      gpgcheck=1
+      gpgkey=https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+      exclude=kubelet kubeadm kubectl
+      EOF
   become: yes
 
-- name: add repo signed
-  shell:
-    cmd: echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+- name: update kubernetes repo
+  yum: 
+    name: '*'
+    state: latest
+    nobest: true
   become: yes
 
-- name: Update APT Cache
-  apt:
-    update_cache: yes
-    force_apt_get: yes
-  become: yes
-
-- name: Remove apt lock file
-  file:
+- name: unlock kubelet kubeadm kubectl version lock
+  community.general.yum_versionlock:
     state: absent
-    path: "/var/lib/dpkg/lock"
-  become: yes
-
-- name: Unhold kubeadm kubelet kubectl
-  dpkg_selections:
     name: "{{ item }}"
-    selection: install
   with_items:
     - kubelet
     - kubeadm
@@ -41,26 +31,31 @@
   become: yes
 
 - name: install kubelet kubeadm kubectl
-  apt: 
+  ansible.builtin.yum:
     name: "{{ item }}"
     state: present
-    allow_downgrade: yes
-  notify: 
-    - kubelet restart
+    disable_excludes: kubernetes
   with_items:
-    - kubelet={{ kube_version }}-00
-    - kubeadm={{ kube_version }}-00
-    - kubectl={{ kube_version }}-00
+    - kubelet-{{ kube_version }}
+    - kubeadm-{{ kube_version }}
+    - kubectl-{{ kube_version }}
   become: yes
 
-- name: Hold kubeadm kubelet kubectl
-  dpkg_selections:
+- name: kubelet start
+  service:
+    name: kubelet
+    enabled: yes
+    state: restarted
+  become: yes
+
+- name: lock kubeadm, kubelet, kubectl version
+  community.general.yum_versionlock:
+    state: present
     name: "{{ item }}"
-    selection: hold
   with_items:
-    - kubelet
-    - kubeadm
-    - kubectl
+    - kubelet-{{ kube_version }}
+    - kubeadm-{{ kube_version }}
+    - kubectl-{{ kube_version }}
   become: yes
 
 - name: echo k8s bash completion to bashrc

@@ -4,6 +4,6 @@
   local_action: "shell tail -n 2 kube-join-cmd.txt"
   register: add_node_command
 
-- name: add k8s node
+- name: add k8s worker node
   shell: "{{ add_node_command.stdout }}  --ignore-preflight-errors=all"
   become: yes

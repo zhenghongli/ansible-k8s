@@ -1,27 +1,30 @@
 ---
-- hosts: no-master
-  roles:
-  - { role: ubuntu/uninstall-docker}
-  - { role: ubuntu/docker}
-- hosts: no-master
-  roles:
-  - { role: ubuntu/common}
+# - hosts: no-master
+#   roles:
+#   - { role: ubuntu/uninstall-docker}
+#   - { role: ubuntu/docker}
+# - hosts: no-master
+#   roles:
+#   - { role: ubuntu/common}
 - hosts: all
   roles:
-  - { role: ubuntu/reset} 
-  - { role: ubuntu/install-kube}
+  - { role: common}
+  - { role: cri-o}
+  - { role: install-kube}
+  - { role: podman}
+  - { role: reset} 
 - hosts: master
   roles:
-  - { role: ubuntu/master}
+  - { role: master}
 - hosts: ha-master
   roles:
-  - { role: ubuntu/ha-master}
+  - { role: ha-master}
 - hosts: all-master
   roles:
-  - { role: ubuntu/kubeconfig}
+  - { role: kubeconfig}
 - hosts: worker
   roles:
-  - { role: ubuntu/worker}
+  - { role: worker}
 - hosts: master
   roles:
-  - { role: ubuntu/cni/calico}
+  - { role: cni/calico}
