@@ -12,6 +12,6 @@ docker run -tid --name ansible -v $(pwd):/ansible-playbook ansible-deploy-node:0
 # get into contaienr.
 `docker exec -ti ansible /bin/bash`
 # go to mount point.
-`cd /ansible`
+`cd /ansible-playbook`
 # run ansible.
 `ansible-playbook site.yml --extra-vars "ansible_sudo_pass={ROOT_PATH}"`
