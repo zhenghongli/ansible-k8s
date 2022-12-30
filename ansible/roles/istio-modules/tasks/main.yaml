@@ -1,0 +1,18 @@
+- name: set istio iptables modules
+  shell:
+    cmd: |
+      cat <<EOF | sudo tee /etc/modules-load.d/99-istio-modules.conf
+      # These modules need to be loaded on boot so that Istio (as required by
+      # Kubeflow) runs properly.
+      #
+      # See also: https://github.com/istio/istio/issues/23009
+
+      br_netfilter
+      nf_nat
+      xt_REDIRECT
+      xt_owner
+      iptable_nat
+      iptable_mangle
+      iptable_filter
+      EOF
+  become: yes

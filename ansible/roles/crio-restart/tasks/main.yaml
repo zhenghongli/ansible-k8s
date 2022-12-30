@@ -1,0 +1,9 @@
+- name: reload crio service for calico cni config
+  service:
+    name: crio
+    enabled: yes
+    state: restarted
+  become: yes
+
+
+

@@ -15,7 +15,6 @@ all_node_name:
   - transglobe-worker01
   - transglobe-worker02
   - transglobe-worker03
-  - tsti-virtual-machine
 all_node_k8s_label:
   - q1
   - q2

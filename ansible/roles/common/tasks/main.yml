@@ -6,11 +6,12 @@
     nobest: true
   become: yes
 
-# - name: install development tools
-#   ansible.builtin.yum:
-#     name: "@development tools" 
-#     state: present
-#   become: yes
+- name: update yum repo
+  yum: 
+    name: '*'
+    state: latest
+    nobest: true
+  become: yes
 
 - name: install versionlock
   ansible.builtin.yum:
@@ -164,6 +165,27 @@
     state: enabled
   become: yes
 
+- name: permit traffic in public zone for dns
+  ansible.posix.firewalld:
+    port: 53/tcp
+    permanent: yes
+    state: enabled
+  become: yes
+
+- name: set masquerade yes for coredns
+  ansible.posix.firewalld:
+    masquerade: yes
+    state: enabled
+    permanent: yes
+  become: yes
+
+- name: restart firewalld
+  service:
+    name: firewalld
+    enabled: yes
+    state: restarted
+  become: yes
+  
 - name: set swapoff
   command: swapoff -a
   become: yes

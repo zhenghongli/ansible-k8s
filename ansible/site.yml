@@ -6,25 +6,28 @@
 # - hosts: no-master
 #   roles:
 #   - { role: ubuntu/common}
-- hosts: all
+- hosts: worker
   roles:
+  # - { role: istio-config}
   - { role: common}
   - { role: cri-o}
   - { role: install-kube}
   - { role: podman}
   - { role: reset} 
-- hosts: master
-  roles:
-  - { role: master}
-- hosts: ha-master
-  roles:
-  - { role: ha-master}
-- hosts: all-master
-  roles:
-  - { role: kubeconfig}
+# - hosts: master
+#   roles:
+#   - { role: master}
+#   - { role: cni/calico}
+# - hosts: ha-master
+#   roles:
+#   - { role: ha-master}
 - hosts: worker
   roles:
   - { role: worker}
-- hosts: master
+# - hosts: all-master
+#   roles:
+#   - { role: kubeconfig}
+- hosts: all
   roles:
-  - { role: cni/calico}
+  - { role: crio-restart}
+  

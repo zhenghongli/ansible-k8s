@@ -28,7 +28,7 @@
 - name: download crictl.tar
   shell: 
     cmd:
-      curl -L https://github.com/kubernetes-sigs/cri-tools/releases/download/$VERSION/crictl-${crictl_version}-linux-amd64.tar.gz --output crictl-${crictl_version}-linux-amd64.tar.gz
+      curl -L https://github.com/kubernetes-sigs/cri-tools/releases/download/{{ crictl_version }}/crictl-{{ crictl_version }}-linux-amd64.tar.gz --output crictl-{{ crictl_version }}-linux-amd64.tar.gz
   become: yes
 
 - name: uncompress crictl.tar
@@ -39,7 +39,7 @@
 - name: set crio capabilities
   shell:
     cmd: |
-      sudo ex -s /etc/crio/crio.conf -c '/[crio.runtime]/r /dev/stdin' -c 'wq' <<EOF
+      sudo ex -s /etc/crio/crio.conf -c '/\[crio.runtime\]/r /dev/stdin' -c 'wq' <<EOF
       default_capabilities = [
               "MKNOD",
               "CHOWN",
@@ -107,6 +107,3 @@
     enabled: yes
     state: restarted
   become: yes
-
-
-

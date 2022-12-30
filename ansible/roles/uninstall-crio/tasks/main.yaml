@@ -1,5 +1,5 @@
 - name: uninstall old crio versions
-  apt: 
+  yum: 
     name: "{{ item }}"
     state: absent
   with_items:
